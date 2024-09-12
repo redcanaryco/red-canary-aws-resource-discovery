@@ -1,0 +1,65 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Red Canary AWS Resource Discovery
+
+Parameters:
+  RedCanaryResourceDiscoveryRoleName:
+    Default: red-canary-resource-discovery-role
+    Description: Enter the name of the role that will scan your accounts, the default is red-canary-resource-discovery-role
+    Type: String
+  ManagementAccountUserRole:
+    Description: Enter the User or Role ARN of the management account that will assume this role
+    Type: String
+
+Resources:
+  RedCanaryResourceDiscoveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RedCanaryResourceDiscoveryRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !Ref ManagementAccountUserRole
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: ResourceDiscovery
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sts:AssumeRole
+            - organizations:ListAccounts
+            - ec2:DescribeRegions
+            - s3:ListBucket
+            - s3:GetBucketLocation
+            - s3:GetBucketNotification
+            - s3:ListAllMyBuckets
+            - dynamodb:ListTables
+            - dynamodb:ListGlobalTables
+            - ec2:DescribeVolumes
+            - ec2:DescribeInstances
+            - ecr:DescribeRepositories
+            - ecr:ListImages
+            - ecr-public:DescribeRepositories
+            - ecr-public:DescribeImages
+            - ecs:ListClusters
+            - ecs:ListServices
+            - ecs:DescribeServices
+            - ecs:DescribeTaskDefinition
+            - ecs:DescribeClusters
+            - elasticfilesystem:DescribeFileSystems
+            - eks:ListClusters
+            - lambda:ListFunctions
+            - rds:DescribeDBInstances
+            - cloudformation:ListResources
+            - cloudformation:DescribeStacks
+            - cloudtrail:DescribeTrails
+            Resource: '*'
+
+Outputs:
+  RoleARNID:
+    Description: Your Role ARN - you will need this to complete resource discovery.
+    Value: !GetAtt RedCanaryResourceDiscoveryRole.Arn

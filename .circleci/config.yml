@@ -1,0 +1,54 @@
+version: 2.1
+orbs:
+  aws-cli: circleci/aws-cli@4.1.3
+  go: circleci/go@1.11.0
+
+jobs:
+  build_and_test:
+    executor:
+      name: go/default # Use the default executor from the orb
+      tag: '1.22.6' # Specify a version tag
+    steps:
+      - checkout # checkout source code
+      - go/load-cache # Load cached Go modules.
+      - go/mod-download # Run 'go mod download'.
+      - go/save-cache # Save Go modules to cache.
+      - go/test: # Runs 'go test ./...' but includes extensive parameterization for finer tuning.
+          covermode: atomic
+          failfast: true
+          race: true
+      - run:
+          name: Build binary
+          command: |
+            GOOS=linux   GOARCH=amd64 go build -o "enumerate-resources"
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - enumerate-resources
+
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - aws-cli/setup:
+          role_arn: $AWS_ROLE_ARN
+          region: $AWS_REGION
+      - run:
+          name: Upload binaries to s3
+          command: |
+            aws s3 cp ~/project/enumerate-resources s3://rc-customer-tools/aws/
+
+workflows:
+  build_deploy:
+    jobs:
+      - build_and_test
+      - deploy:
+          context:
+            - public_repo_aws_role
+          requires:
+            - build_and_test # only deploy if the build_and_test job has completed
+          filters:
+            branches:
+              only: main # only deploy when on main
