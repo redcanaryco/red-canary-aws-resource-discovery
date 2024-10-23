@@ -1,0 +1,43 @@
+name: JIRA Lint
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  deployments: write
+  issues: write
+  discussions: write
+  packages: write
+  pages: write
+  pull-requests: write
+  repository-projects: write
+  security-events: write
+  statuses: write
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - synchronize
+      - edited
+jobs:
+  jira-lint:
+    runs-on: [self-hosted, linux, x64]
+    # We don't want to run this job on draft and dependabot PRs
+    if: github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/checkout@v2
+        with:
+          path: .github/actions/jira-action
+          repository: redcanaryco/jira-action
+          ssh-key: ${{ secrets.JIRA_ACTION_SSH }}
+
+      - uses: ./.github/actions/jira-action/
+        name: jira-lint
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          jira-base-url: https://redcanary.atlassian.net
+          skip-branches: "^((master|main)$|dependabot/)"
