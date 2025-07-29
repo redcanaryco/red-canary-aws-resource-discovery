@@ -65,7 +65,7 @@ func (s *Scanner) initializeScan(ctx context.Context, config config.Config) (aws
 	return cfg, initialCredentials, regions, nil
 }
 
-func (s *Scanner) initializeOrgScanner(cfg aws.Config, orgAccounts []types.Account, regions []string) *OrgScanner {
+func (s *Scanner) initializeOrgScanner(cfg aws.Config, orgAccounts []types.Account, regions []string, profile string) *OrgScanner {
 	orgClient := s.OrgClientFactory(cfg)
 	if orgClient == nil {
 		log.Printf("OrgClient is nil")
@@ -78,6 +78,7 @@ func (s *Scanner) initializeOrgScanner(cfg aws.Config, orgAccounts []types.Accou
 		Regions:            regions,
 		STSClient:          s.STSClient,
 		OrgClient:          orgClient,
+		Profile:            profile,
 		ScannerFactory: func(accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals) ResourceScannerInterface {
 			return &ResourceScanner{
 				AccountId:   accountId,
@@ -85,13 +86,14 @@ func (s *Scanner) initializeOrgScanner(cfg aws.Config, orgAccounts []types.Accou
 				Credentials: credentials,
 				Logger:      logger,
 				Totals:      totals,
+				Profile:     profile,
 			}
 		},
 	}
 }
 
 func (s *Scanner) performScan(cfg aws.Config, initialCredentials aws.Credentials, regions []string, orgAccounts []types.Account, config config.Config) (ScanResult, error) {
-	orgScanner := s.initializeOrgScanner(cfg, orgAccounts, regions)
+	orgScanner := s.initializeOrgScanner(cfg, orgAccounts, regions, config.Profile)
 	if orgScanner == nil {
 		log.Printf("Failed to initialize org scanner")
 		return ScanResult{}, fmt.Errorf("failed to initialize org scanner")

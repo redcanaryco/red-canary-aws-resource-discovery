@@ -65,7 +65,21 @@ func (sm *sessionManager) AssumeRoleIfNeeded(ctx context.Context, cfg aws.Config
 }
 
 func (sm *sessionManager) InitializeSessionAndCredentials(ctx context.Context, config config.Config, logger interfaces.Logger) (aws.Config, aws.Credentials) {
-	cfg, err := aws_conf.LoadDefaultConfig(ctx, aws_conf.WithRegion(config.Region))
+	var cfg aws.Config
+	var err error
+	if config.Profile != "" {
+		cfg, err = aws_conf.LoadDefaultConfig(ctx,
+			aws_conf.WithRegion(config.Region),
+			aws_conf.WithSharedConfigProfile(config.Profile),
+		)
+		if err != nil {
+			logger.Logf("Failed to load AWS config: %v", err)
+			return aws.Config{}, aws.Credentials{}
+		}
+		return cfg, aws.Credentials{}
+	}
+
+	cfg, err = aws_conf.LoadDefaultConfig(ctx, aws_conf.WithRegion(config.Region))
 	if err != nil {
 		logger.Logf("Failed to load AWS config: %v", err)
 		return aws.Config{}, aws.Credentials{}

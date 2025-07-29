@@ -18,6 +18,7 @@ type OrgScanner struct {
 	Regions            []string
 	STSClient          interfaces.STSClient
 	OrgClient          interfaces.OrganizationsClient
+	Profile            string
 	ScannerFactory     func(accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals) ResourceScannerInterface
 }
 
@@ -28,7 +29,6 @@ type ResourceScannerInterface interface {
 func (s *OrgScanner) Call() {
 	totals := interfaces.ResourceTotals{}
 	progress := newProgressReporter(len(s.OrgAccounts), len(s.Regions))
-
 	for _, account := range s.OrgAccounts {
 		for _, region := range s.Regions {
 			progress.report()

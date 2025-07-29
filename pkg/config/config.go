@@ -8,4 +8,6 @@ type Config struct {
 	RoleName        string
 	Trail           bool
 	ExcludeAccounts []string
+	Profile         string
+	Debug           bool
 }

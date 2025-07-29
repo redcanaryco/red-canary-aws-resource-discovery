@@ -14,7 +14,7 @@ func TestNewCSVLogger(t *testing.T) {
 	filename := "test_csv_logger.csv"
 	defer os.Remove(filename)
 
-	logger, err := logger.NewCSVLogger(filename)
+	logger, err := logger.NewCSVLogger(filename, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, logger)
 
@@ -30,7 +30,7 @@ func TestCSVLogger_Log(t *testing.T) {
 	filename := "test_csv_logger.csv"
 	defer os.Remove(filename)
 
-	logger, err := logger.NewCSVLogger(filename)
+	logger, err := logger.NewCSVLogger(filename, "")
 	assert.NoError(t, err)
 	defer logger.Close()
 
@@ -51,7 +51,7 @@ func TestCSVLogger_Logf(t *testing.T) {
 	filename := "test_csv_logger.csv"
 	defer os.Remove(filename)
 
-	logger, err := logger.NewCSVLogger(filename)
+	logger, err := logger.NewCSVLogger(filename, "")
 	assert.NoError(t, err)
 	defer logger.Close()
 

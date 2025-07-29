@@ -15,7 +15,7 @@ import (
 
 func TestCredentialsManager_CredentialsFor(t *testing.T) {
 	mockSTSClient := new(mocks.MockSTSClient)
-	manager := NewCredentialsManager("test-role", mockSTSClient).(*credentialsManager)
+	manager := NewCredentialsManager("test-role", mockSTSClient, "").(*credentialsManager)
 
 	ctx := context.Background()
 	accountId := "123456789012"
@@ -52,7 +52,7 @@ func TestCredentialsManager_CredentialsFor(t *testing.T) {
 
 func TestCredentialsManager_CredentialsFor_Error(t *testing.T) {
 	mockSTSClient := new(mocks.MockSTSClient)
-	manager := NewCredentialsManager("test-role", mockSTSClient).(*credentialsManager)
+	manager := NewCredentialsManager("test-role", mockSTSClient, "").(*credentialsManager)
 
 	ctx := context.TODO()
 	accountId := "123456789012"
@@ -77,7 +77,7 @@ func TestCredentialsManager_CredentialsFor_Error(t *testing.T) {
 }
 
 func TestCredentialsManager_createAssumeRoleInput(t *testing.T) {
-	manager := NewCredentialsManager("test-role", nil).(*credentialsManager)
+	manager := NewCredentialsManager("test-role", nil, "").(*credentialsManager)
 
 	accountId := "123456789012"
 	region := "us-east-1"
@@ -91,7 +91,7 @@ func TestCredentialsManager_createAssumeRoleInput(t *testing.T) {
 }
 
 func TestCredentialsManager_awsRoleArn(t *testing.T) {
-	manager := NewCredentialsManager("test-role", nil).(*credentialsManager)
+	manager := NewCredentialsManager("test-role", nil, "").(*credentialsManager)
 
 	accountId := "123456789012"
 	expectedRoleArn := "arn:aws:iam::123456789012:role/test-role"
@@ -99,7 +99,7 @@ func TestCredentialsManager_awsRoleArn(t *testing.T) {
 
 	assert.Equal(t, expectedRoleArn, roleArn)
 
-	manager = NewCredentialsManager("", nil).(*credentialsManager)
+	manager = NewCredentialsManager("", nil, "").(*credentialsManager)
 	roleArn = manager.awsRoleArn(accountId)
 	assert.Equal(t, "", roleArn)
 }

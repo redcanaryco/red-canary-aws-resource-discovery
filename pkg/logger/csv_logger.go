@@ -8,18 +8,19 @@ import (
 )
 
 type csvLogger struct {
-	file   *os.File
-	writer *csv.Writer
+	file    *os.File
+	writer  *csv.Writer
+	profile string
 }
 
-func NewCSVLogger(filename string) (interfaces.Logger, error) {
+func NewCSVLogger(filename string, profile string) (interfaces.Logger, error) {
 	file, err := os.Create(filename)
 	if err != nil {
 		return nil, err
 	}
 
 	writer := csv.NewWriter(file)
-	return &csvLogger{file: file, writer: writer}, nil
+	return &csvLogger{file: file, writer: writer, profile: profile}, nil
 }
 
 func (l *csvLogger) Log(record []string) error {
@@ -33,6 +34,10 @@ func (l *csvLogger) Log(record []string) error {
 
 func (l *csvLogger) Logf(format string, args ...interface{}) error {
 	record := fmt.Sprintf(format, args...)
+	if l.profile != "" {
+		fmt.Fprintln(os.Stderr, record)
+		return nil
+	}
 	return l.Log([]string{record})
 }
 

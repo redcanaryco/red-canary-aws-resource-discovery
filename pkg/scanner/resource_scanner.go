@@ -20,6 +20,7 @@ import (
 
 type ResourceScanner struct {
 	Session     aws.Config
+	Profile     string
 	Credentials aws.Credentials
 	AccountId   string
 	Region      string
@@ -74,16 +75,25 @@ func (s *ResourceScanner) scanResources() {
 	}
 
 	resourceResults := make(map[string]int)
+	var hadError bool
 
 	for range counters {
 		result := <-results
+		if result.Error != nil {
+			hadError = true
+			s.Logger.Logf("[ERROR] %s: %v", result.CounterClass, result.Error)
+		}
 		resourceResults[result.CounterClass] = result.Count
 		s.updateTotals(result.CounterClass, result.Count)
 	}
 
-	for resourceType, resourceCount := range resourceResults {
-		record := []string{s.AccountId, s.Region, resourceType, strconv.Itoa(resourceCount)}
-		s.Logger.Log(record)
+	if !hadError {
+		for resourceType, resourceCount := range resourceResults {
+			record := []string{s.AccountId, s.Region, resourceType, strconv.Itoa(resourceCount)}
+			s.Logger.Log(record)
+		}
+	} else {
+		s.Logger.Logf("[ERROR] One or more resource counters failed, resource counts not output.")
 	}
 }
 
@@ -92,7 +102,16 @@ func (s *ResourceScanner) createSession(ctx context.Context) aws.Config {
 		return s.Session
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(s.Region))
+	var cfg aws.Config
+	var err error
+	if s.Profile != "" {
+		cfg, err = config.LoadDefaultConfig(ctx,
+			config.WithRegion(s.Region),
+			config.WithSharedConfigProfile(s.Profile),
+		)
+	} else {
+		cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion(s.Region))
+	}
 	if err != nil {
 		s.Logger.Logf("Failed to initialize AWS session: %v", err)
 	}

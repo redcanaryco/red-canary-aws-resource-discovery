@@ -28,21 +28,26 @@ func main() {
 	userConfig := parseFlags()
 
 	// Setup CSV Logger
-	csvLogger, err := logger.NewCSVLogger("aws-resource-discovery.csv")
+	csvLogger, err := logger.NewCSVLogger("aws-resource-discovery.csv", userConfig.Profile)
 	if err != nil {
 		log.Fatalf("Failed to initialize CSV logger: %v", err)
 	}
 	defer csvLogger.Close()
 
-	// Load the AWS SDK configuration
-	cfg, err := aws_config.LoadDefaultConfig(ctx)
+	// Load the AWS SDK configuration with profile if set
+	var cfg aws.Config
+	if userConfig.Profile != "" {
+		cfg, err = aws_config.LoadDefaultConfig(ctx, aws_config.WithSharedConfigProfile(userConfig.Profile))
+	} else {
+		cfg, err = aws_config.LoadDefaultConfig(ctx)
+	}
 	if err != nil {
 		log.Fatalf("Failed to load AWS configuration: %v", err)
 	}
 
 	// Create STS Client
 	stsClient := sts.NewFromConfig(cfg)
-	credsManager := managers.NewCredentialsManager(userConfig.RoleName, stsClient)
+	credsManager := managers.NewCredentialsManager(userConfig.RoleName, stsClient, userConfig.Profile, userConfig.Debug)
 	sessionManager := managers.NewSessionManager(stsClient)
 
 	// Create EC2 Client
@@ -124,6 +129,8 @@ func parseFlags() config.Config {
 	flag.StringVar(&config.RoleName, "AWS_ROLE_NAME", "", "AWS Role Name")
 	flag.BoolVar(&config.Trail, "AWS_TRAIL", false, "Set to true to print CloudTrail information")
 	flag.StringVar(&excludeAccounts, "EXCLUDE", "", "Comma-separated list of AWS account numbers to exclude")
+	flag.StringVar(&config.Profile, "AWS_PROFILE", "", "AWS profile name to use for credentials")
+	flag.BoolVar(&config.Debug, "DEBUG", false, "Enable debug logging")
 
 	// Parse flags
 	flag.Parse()
