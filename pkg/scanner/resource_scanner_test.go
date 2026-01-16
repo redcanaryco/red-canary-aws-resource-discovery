@@ -92,8 +92,6 @@ func TestResourceScanner_updateTotals(t *testing.T) {
 				assert.Equal(t, tc.expectedValue, totals.ServerlessFunctions)
 			case "VirtualMachines":
 				assert.Equal(t, tc.expectedValue, totals.VirtualMachines)
-			case "ContainerRegistryImages":
-				assert.Equal(t, tc.expectedValue, totals.ContainerRegistryImages)
 			}
 		})
 	}

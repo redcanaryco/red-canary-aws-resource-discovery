@@ -27,6 +27,10 @@ type Scanner struct {
 	OrgDetector        interfaces.OrgDetector
 	OrgClientFactory   func(cfg aws.Config) interfaces.OrganizationsClient
 	Logger             interfaces.Logger
+	// ResourceScannerFactory allows tests to inject a ResourceScanner (for example a mock)
+	// to avoid initializing real AWS clients during tests. If nil, the default
+	// factory creates a real `ResourceScanner` which will initialize its own session.
+	ResourceScannerFactory func(cfg aws.Config, accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals) ResourceScannerInterface
 }
 
 func NewScanner(
@@ -79,6 +83,9 @@ func (s *Scanner) initializeOrgScanner(cfg aws.Config, orgAccounts []types.Accou
 		STSClient:          s.STSClient,
 		OrgClient:          orgClient,
 		ScannerFactory: func(accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals) ResourceScannerInterface {
+			if s.ResourceScannerFactory != nil {
+				return s.ResourceScannerFactory(cfg, accountId, region, credentials, logger, totals)
+			}
 			return &ResourceScanner{
 				AccountId:   accountId,
 				Region:      region,

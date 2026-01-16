@@ -18,6 +18,5 @@ func PrintTotals(totals interfaces.ResourceTotals) {
     tbl.AddRow("Serverless Containers", totals.ServerlessContainers)
     tbl.AddRow("Serverless Functions", totals.ServerlessFunctions)
     tbl.AddRow("Virtual Machines", totals.VirtualMachines)
-    tbl.AddRow("Container Registry Images", totals.ContainerRegistryImages)
     tbl.Print()
 }

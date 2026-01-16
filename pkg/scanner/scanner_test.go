@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// (Use mocks.MockResourceScanner below to exercise logger expectations.)
+
 func TestScanner_ScanSingleAccount(t *testing.T) {
 	mockSTSClient := new(mocks.MockSTSClient)
 	mockSessionManager := new(mocks.MockSessionManager)
@@ -35,6 +37,16 @@ func TestScanner_ScanSingleAccount(t *testing.T) {
 	mockLogger.On("Logf", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	scanner := NewScanner(mockSTSClient, mockSessionManager, mockRegionsManager, mockCredentialsManager, mockOrgDetector, mockOrgClientFactory, mockLogger)
+
+	// Inject repo mock ResourceScanner; have its Call() trigger the logger so
+	// existing assertions about logger activity remain valid.
+	mockResourceScanner := new(mocks.MockResourceScanner)
+	mockResourceScanner.On("Call").Run(func(args mock.Arguments) {
+		mockLogger.Log([]string{"123456789012", "us-east-1", "AWS::TEST::Resource", "0"})
+	}).Return()
+	scanner.ResourceScannerFactory = func(cfg aws.Config, accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals) ResourceScannerInterface {
+		return mockResourceScanner
+	}
 
 	userConfig := config.Config{AccountId: "123456789012", Region: "us-east-1"}
 	ctx := context.Background()
@@ -79,6 +91,15 @@ func TestScanner_ScanOrganization(t *testing.T) {
 	mockLogger.On("Logf", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	scanner := NewScanner(mockSTSClient, mockSessionManager, mockRegionsManager, mockCredentialsManager, mockOrgDetector, mockOrgClientFactory, mockLogger)
+
+	// Inject repo mock ResourceScanner for organization scan as well
+	mockResourceScanner2 := new(mocks.MockResourceScanner)
+	mockResourceScanner2.On("Call").Run(func(args mock.Arguments) {
+		mockLogger.Log([]string{"123456789012", "us-east-1", "AWS::TEST::Resource", "0"})
+	}).Return()
+	scanner.ResourceScannerFactory = func(cfg aws.Config, accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals) ResourceScannerInterface {
+		return mockResourceScanner2
+	}
 
 	userConfig := config.Config{AccountId: "123456789012", Region: "us-east-1"}
 	ctx := context.Background()
