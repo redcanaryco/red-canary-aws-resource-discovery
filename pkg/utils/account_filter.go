@@ -42,17 +42,17 @@ func (af *accountFilter) FilterActiveAccounts() []types.Account {
 }
 
 func (af *accountFilter) isAccountActive(accountId string) bool {
-    input := &organizations.DescribeAccountInput{
-        AccountId: aws.String(accountId),
-    }
+	input := &organizations.DescribeAccountInput{
+		AccountId: aws.String(accountId),
+	}
 
-    result, err := af.OrgClient.DescribeAccount(context.Background(), input)
-    if err != nil {
-        af.Logger.Logf("Failed to describe account %s: %v", accountId, err)
-        return false
-    }
+	result, err := af.OrgClient.DescribeAccount(context.Background(), input)
+	if err != nil {
+		af.Logger.Logf("Failed to describe account %s: %v", accountId, err)
+		return false
+	}
 
-    return result.Account.Status == types.AccountStatusActive
+	return result.Account.Status == types.AccountStatusActive
 }
 
 func (af *accountFilter) isExcludedAccount(accountId string) bool {

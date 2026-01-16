@@ -30,10 +30,6 @@ This application is ran from within the customer's CloudShell env.
                 "dynamodb:ListGlobalTables",
                 "ec2:DescribeVolumes",
                 "ec2:DescribeInstances",
-                "ecr:DescribeRepositories",
-                "ecr:ListImages",
-                "ecr-public:DescribeRepositories",
-                "ecr-public:DescribeImages",
                 "ecs:ListClusters",
                 "ecs:ListServices",
                 "ecs:DescribeServices",
@@ -141,7 +137,6 @@ Non-OS Disks                12
 Serverless Containers       25       
 Serverless Functions        16       
 Virtual Machines            65      
-Container Registry Images   13      
 
 Scan completed in 45 seconds.
 
@@ -155,9 +150,7 @@ $ cat aws-resource-discovery.csv
 123456789,us-east-1,AWS::RDS::DBInstance,0
 123456789,us-east-1,AWS::ECS::Cluster,1
 123456789,us-east-1,AWS::EKS::Cluster,2
-123456789,us-east-1,AWS::ECR::PublicRepository,1
 123456789,us-east-1,AWS::EC2::Instance,3
-123456789,us-east-1,AWS::ECR::Repository,0
 123456789,us-east-1,AWS::EFS::FileSystem,0
 123456789,us-east-1,AWS::DynamoDB::Table,0
 123456789,us-east-1,AWS::Lambda::Function,0
