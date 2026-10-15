@@ -17,15 +17,14 @@ import (
 )
 
 type ResourceScanner struct {
-	Session     aws.Config
-	Credentials aws.Credentials
-	AccountId   string
-	Region      string
-	Logger      interfaces.Logger
-	Totals      *interfaces.ResourceTotals
+	Session      aws.Config
+	Credentials  aws.Credentials
+	AccountId    string
+	Region       string
+	Logger       interfaces.Logger
+	Totals       *interfaces.ResourceTotals
+	S3ScanRegion string // Region to use for S3 bucket scanning (empty means don't scan S3)
 }
-
-const GLOBAL_SCAN_REGION = "us-east-1"
 
 func (s *ResourceScanner) Call() {
 	s.scanResources()
@@ -40,11 +39,10 @@ func (s *ResourceScanner) scanResources() {
 	ecsClient := ecs.NewFromConfig(s.Session)
 	var counters []interfaces.Counter
 
-	// Only add the BucketCounter if the region is us-east-1
-	// ECR Public is only available in us-east-1
-	if s.Region == GLOBAL_SCAN_REGION {
+	// S3 buckets are global resources - count them once per account
+	// Only include S3 counter if this is the designated S3 scan region
+	if s.S3ScanRegion != "" && s.Region == s.S3ScanRegion {
 		counters = append(counters, counter.NewBucketCounter(client))
-
 	}
 
 	counters = append(counters,

@@ -30,9 +30,9 @@ func TestScanner_ScanSingleAccount(t *testing.T) {
 	}
 
 	mockSessionManager.On("InitializeSessionAndCredentials", mock.Anything, mock.Anything, mock.Anything).Return(aws.Config{Region: "us-east-1"}, aws.Credentials{})
-	mockRegionsManager.On("GetRegions", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{"us-east-1", "us-west-2"}, nil)
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "123456789012", "us-east-1").Return(aws.Credentials{}, nil)
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "123456789012", "us-west-2").Return(aws.Credentials{}, nil)
+	// GetRegions now called per-account in OrgScanner, not in initializeScan
+	mockRegionsManager.On("GetRegions", mock.Anything, mock.Anything, "us-east-1", mock.Anything).Return([]string{"us-east-1"}, nil)
+	mockCredentialsManager.On("CredentialsFor", mock.Anything, "123456789012", "us-east-1").Return(aws.Credentials{}, nil).Times(2) // Called twice: once for region discovery, once for scanning
 	mockLogger.On("Log", mock.Anything).Return(nil)
 	mockLogger.On("Logf", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
@@ -60,9 +60,9 @@ func TestScanner_ScanSingleAccount(t *testing.T) {
 	assert.Equal(t, "123456789012", *result.OrgAccounts[0].Id)
 
 	mockSessionManager.AssertCalled(t, "InitializeSessionAndCredentials", ctx, userConfig, mockLogger)
-	mockRegionsManager.AssertCalled(t, "GetRegions", ctx, mock.Anything, "us-east-1", mockLogger)
+	// GetRegions now called per-account with specified region
+	mockRegionsManager.AssertCalled(t, "GetRegions", mock.Anything, mock.Anything, "us-east-1", mock.Anything)
 	mockCredentialsManager.AssertCalled(t, "CredentialsFor", mock.Anything, "123456789012", "us-east-1")
-	mockCredentialsManager.AssertCalled(t, "CredentialsFor", mock.Anything, "123456789012", "us-west-2")
 	mockLogger.AssertCalled(t, "Log", mock.Anything)
 }
 
@@ -80,10 +80,10 @@ func TestScanner_ScanOrganization(t *testing.T) {
 	}
 
 	mockSessionManager.On("InitializeSessionAndCredentials", mock.Anything, mock.Anything, mock.Anything).Return(aws.Config{Region: "us-east-1"}, aws.Credentials{})
-	mockRegionsManager.On("GetRegions", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{"us-east-1", "us-west-2"}, nil)
+	// GetRegions now called per-account in OrgScanner
+	mockRegionsManager.On("GetRegions", mock.Anything, mock.Anything, "us-east-1", mock.Anything).Return([]string{"us-east-1"}, nil)
 	mockOrgDetector.On("ListAccounts").Return([]types.Account{{Id: aws.String("123456789012")}})
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "123456789012", "us-east-1").Return(aws.Credentials{}, nil)
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "123456789012", "us-west-2").Return(aws.Credentials{}, nil)
+	mockCredentialsManager.On("CredentialsFor", mock.Anything, "123456789012", "us-east-1").Return(aws.Credentials{}, nil).Times(2) // Called twice: once for region discovery, once for scanning
 	mockOrgClient.On("DescribeAccount", mock.Anything, mock.Anything).Return(&organizations.DescribeAccountOutput{
 		Account: &types.Account{Id: aws.String("123456789012"), Status: types.AccountStatusActive},
 	}, nil)
@@ -113,10 +113,10 @@ func TestScanner_ScanOrganization(t *testing.T) {
 	assert.Equal(t, "123456789012", *result.OrgAccounts[0].Id)
 
 	mockSessionManager.AssertCalled(t, "InitializeSessionAndCredentials", ctx, userConfig, mockLogger)
-	mockRegionsManager.AssertCalled(t, "GetRegions", ctx, mock.Anything, "us-east-1", mockLogger)
+	// GetRegions now called per-account
+	mockRegionsManager.AssertCalled(t, "GetRegions", mock.Anything, mock.Anything, "us-east-1", mock.Anything)
 	mockOrgDetector.AssertCalled(t, "ListAccounts")
 	mockCredentialsManager.AssertCalled(t, "CredentialsFor", mock.Anything, "123456789012", "us-east-1")
-	mockCredentialsManager.AssertCalled(t, "CredentialsFor", mock.Anything, "123456789012", "us-west-2")
 	mockOrgClient.AssertCalled(t, "DescribeAccount", mock.Anything, mock.Anything)
 	mockLogger.AssertCalled(t, "Log", mock.Anything)
 }

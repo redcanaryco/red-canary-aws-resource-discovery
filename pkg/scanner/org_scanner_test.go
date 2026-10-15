@@ -17,6 +17,7 @@ import (
 
 func TestOrgScanner_Call(t *testing.T) {
 	mockCredentialsManager := new(mocks.MockCredentialsManager)
+	mockRegionsManager := new(mocks.MockRegionsManager)
 	mockLogger := new(mocks.MockLogger)
 	mockSTSClient := new(mocks.MockSTSClient)
 	mockOrgClient := new(mocks.MockOrganizationsClient)
@@ -26,33 +27,39 @@ func TestOrgScanner_Call(t *testing.T) {
 		{Id: aws.String("account1")},
 		{Id: aws.String("account2")},
 	}
-	regions := []string{"us-east-1", "us-west-2"}
 
 	mockCredentials := aws.Credentials{}
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account1", "us-east-1").Return(mockCredentials, nil)
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account1", "us-west-2").Return(mockCredentials, nil)
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account2", "us-east-1").Return(mockCredentials, nil)
-	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account2", "us-west-2").Return(mockCredentials, nil)
+	// For account1: GetRegions returns [us-east-1, us-west-2]
+	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account1", "us-east-1").Return(mockCredentials, nil).Times(3) // Once for region discovery, twice for scanning
+	mockRegionsManager.On("GetRegions", mock.Anything, mock.Anything, "", mock.Anything).Return([]string{"us-east-1", "us-west-2"}, nil).Once()
+	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account1", "us-west-2").Return(mockCredentials, nil).Once()
+
+	// For account2: GetRegions returns [eu-west-1]
+	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account2", "us-east-1").Return(mockCredentials, nil).Once() // For region discovery
+	mockRegionsManager.On("GetRegions", mock.Anything, mock.Anything, "", mock.Anything).Return([]string{"eu-west-1"}, nil).Once()
+	mockCredentialsManager.On("CredentialsFor", mock.Anything, "account2", "eu-west-1").Return(mockCredentials, nil).Once()
 
 	mockResourceScanner.On("Call").Return(nil)
+	mockLogger.On("Logf", mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	scanner := &OrgScanner{
 		CredentialsManager: mockCredentialsManager,
+		RegionsManager:     mockRegionsManager,
 		OrgAccounts:        orgAccounts,
 		Logger:             mockLogger,
-		Regions:            regions,
+		SpecifiedRegion:    "",
 		STSClient:          mockSTSClient,
 		OrgClient:          mockOrgClient,
-		ScannerFactory: func(accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals) ResourceScannerInterface {
+		ScannerFactory: func(accountId, region string, credentials aws.Credentials, logger interfaces.Logger, totals *interfaces.ResourceTotals, s3ScanRegion string) ResourceScannerInterface {
 			return mockResourceScanner
 		},
 	}
 
 	scanner.Call()
 
-	mockCredentialsManager.AssertNumberOfCalls(t, "CredentialsFor", 4)
-	mockResourceScanner.AssertNumberOfCalls(t, "Call", 4)
-	mockLogger.AssertNotCalled(t, "Logf")
+	// Total calls: 2 accounts × different region counts = 3 scans (2 for account1, 1 for account2)
+	mockResourceScanner.AssertNumberOfCalls(t, "Call", 3)
+	mockRegionsManager.AssertNumberOfCalls(t, "GetRegions", 2) // Once per account
 }
 
 func TestProgressReporter(t *testing.T) {
